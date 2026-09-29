@@ -1,0 +1,60 @@
+{
+  "input_date": "2026-10-15",
+  "recommendation": {
+    "recommended_city": "경주",
+    "weather": "완연한 가을 날씨로 낮에는 온화하고 맑아 야외 활동에 적합하며, 아침저녁으로는 일교차가 커 다소 쌀쌀합니다.",
+    "events": [
+      "신라문화제",
+      "경주 첨성대 핑크뮬리 및 가을꽃 축제"
+    ],
+    "reason": "10월 중순의 경주는 첨성대 일대에 핑크뮬리와 코스모스가 만개하여 화려한 가을 정취를 감상하기에 가장 좋습니다. 대릉원과 불국사 등 천년 고도의 유적지 사이로 가을빛이 물들어 고즈넉하면서도 아름다운 풍경을 선사합니다. 맑고 쾌적한 기온 덕분에 자전거를 타고 유적지 곳곳을 둘러보며 야외 여행을 만끽하기에 최적의 시기입니다."
+  },
+  "restaurants": [
+    {
+      "name": "황남빵",
+      "address": "경북 경주시 태종로 783",
+      "category": "음식점 > 간식 > 제과,베이커리",
+      "url": "http://place.map.kakao.com/26519092",
+      "x": "129.21364442351",
+      "y": "35.8408398161359"
+    },
+    {
+      "name": "맷돌순두부",
+      "address": "경북 경주시 북군길 7",
+      "category": "음식점 > 한식 > 두부전문점",
+      "url": "http://place.map.kakao.com/10341223",
+      "x": "129.262849554884",
+      "y": "35.851776927027"
+    },
+    {
+      "name": "향화정",
+      "address": "경북 경주시 사정로57번길 17",
+      "category": "음식점 > 한식",
+      "url": "http://place.map.kakao.com/632306474",
+      "x": "129.209192577739",
+      "y": "35.8380095983727"
+    },
+    {
+      "name": "도미",
+      "address": "경북 경주시 중앙로 10",
+      "category": "음식점 > 양식",
+      "url": "http://place.map.kakao.com/1783751879",
+      "x": "129.211765466849",
+      "y": "35.8407626996026"
+    },
+    {
+      "name": "경주단골식당 본점",
+      "address": "경북 경주시 충효녹지길 30",
+      "category": "음식점 > 한식 > 국밥",
+      "url": "http://place.map.kakao.com/11478131",
+      "x": "129.187586203758",
+      "y": "35.8414974311203"
+    }
+  ],
+  "errors": [
+    "Gemini 추천 실패 (시도 1회): 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+    "리포트 생성 에러 (시도 1회): 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+    "리포트 생성 에러 (시도 2회): 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+    "리포트 생성 에러 (시도 3회): 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+  ]
+}

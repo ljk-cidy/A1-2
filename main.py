@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import re
 import time
 from datetime import datetime
 from dotenv import load_dotenv
@@ -21,7 +22,7 @@ if not GEMINI_API_KEY:
 # Gemini 클라이언트 초기화
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-# 최신 권장 모델명으로 수정
+# 최신 권장 모델명
 MODEL_NAME = "gemini-3.8-flash"
 
 
@@ -36,7 +37,23 @@ def validate_date(date_string):
         )
 
 
-# 3. LLM에 여행지 추천 요청 (503/트래픽 과부하 대응 재시도 로직)
+# 2-1. 에러 메시지에서 retryDelay(초) 파싱 및 대기 시간 계산 함수
+def calculate_wait_time(error, retry_count):
+    err_str = str(error)
+    # 에러 메시지 내 'retryDelay': '58s' 또는 'Please retry in 58.48s' 구문 검색
+    match = re.search(r"retryDelay':\s*'(\d+)s", err_str) or re.search(r"retry in (\d+\.?\d*)s", err_str)
+    
+    if match:
+        # 구글 서버 권장 대기시간 + 2초 여유
+        wait_seconds = int(float(match.group(1))) + 2
+    else:
+        # 기본 대기시간: 1회차 65초, 2회차 130초
+        wait_seconds = (retry_count + 1) * 65
+
+    return wait_seconds
+
+
+# 3. LLM에 여행지 추천 요청 (429/503 대기 로직 강화)
 def get_llm_recommendation(date_str, errors_list, retry_count=0):
     prompt = f"""
     당신은 한국 여행 전문가입니다. {date_str} 시기에 여행하기 좋은 국내 도시 1곳을 추천해 주세요.
@@ -50,11 +67,6 @@ def get_llm_recommendation(date_str, errors_list, retry_count=0):
         "reason": "추천 이유 (2~4문장)"
     }}
     """
-
-    if retry_count > 0:
-        sleep_time = retry_count * 3
-        print(f"[안내] 구글 서버 응답 대기 중 ({sleep_time}초 대기)...")
-        time.sleep(sleep_time)
 
     try:
         response = client.models.generate_content(
@@ -75,6 +87,9 @@ def get_llm_recommendation(date_str, errors_list, retry_count=0):
         errors_list.append(err_msg)
 
         if retry_count < 2:
+            wait_time = calculate_wait_time(e, retry_count)
+            print(f"[안내] 구글 API 할당량/서버 응답 대기 중 ({wait_time}초 대기)...")
+            time.sleep(wait_time)
             return get_llm_recommendation(date_str, errors_list, retry_count + 1)
 
         return {
@@ -153,11 +168,6 @@ def generate_final_report(rec_data, restaurants, errors_list, retry_count=0):
     5. 하루 일정 추천 (오전/점심/오후/저녁)
     """
 
-    if retry_count > 0:
-        sleep_time = retry_count * 3
-        print(f"[안내] 리포트 생성 서버 대기 중 ({sleep_time}초 대기)...")
-        time.sleep(sleep_time)
-
     try:
         response = client.models.generate_content(
             model=MODEL_NAME,
@@ -173,6 +183,9 @@ def generate_final_report(rec_data, restaurants, errors_list, retry_count=0):
         errors_list.append(err_msg)
 
         if retry_count < 2:
+            wait_time = calculate_wait_time(e, retry_count)
+            print(f"[안내] 리포트 생성 서버 대기 중 ({wait_time}초 대기)...")
+            time.sleep(wait_time)
             return generate_final_report(rec_data, restaurants, errors_list, retry_count + 1)
 
         return f"# 리포트 생성 실패\n\n내용: {str(e)}"

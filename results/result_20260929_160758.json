@@ -1,0 +1,59 @@
+{
+  "input_date": "2026-10-15",
+  "recommendation": {
+    "recommended_city": "서울",
+    "weather": "날씨 정보 없음",
+    "events": [],
+    "reason": "응답 분석 실패로 기본값을 사용합니다."
+  },
+  "restaurants": [
+    {
+      "name": "삼청동수제비",
+      "address": "서울 종로구 삼청로 101-1",
+      "category": "음식점 > 한식 > 수제비",
+      "url": "http://place.map.kakao.com/13559837",
+      "x": "126.98197124938",
+      "y": "37.5845977743306"
+    },
+    {
+      "name": "목멱산방",
+      "address": "서울 중구 퇴계로20길 71",
+      "category": "음식점 > 한식",
+      "url": "http://place.map.kakao.com/11642405",
+      "x": "126.98689405825475",
+      "y": "37.55811276850028"
+    },
+    {
+      "name": "청수당 베이커리",
+      "address": "서울 종로구 돈화문로11나길 31-9",
+      "category": "음식점 > 카페 > 테마카페 > 디저트카페",
+      "url": "http://place.map.kakao.com/78911659",
+      "x": "126.98978471926921",
+      "y": "37.57388138546145"
+    },
+    {
+      "name": "핏제리아오",
+      "address": "서울 종로구 동숭길 86",
+      "category": "음식점 > 양식 > 피자",
+      "url": "http://place.map.kakao.com/21555096",
+      "x": "127.00437570908254",
+      "y": "37.582097912403114"
+    },
+    {
+      "name": "이문설농탕",
+      "address": "서울 종로구 우정국로 38-13",
+      "category": "음식점 > 한식 > 설렁탕",
+      "url": "http://place.map.kakao.com/24725293",
+      "x": "126.983907557385",
+      "y": "37.5727337640939"
+    }
+  ],
+  "errors": [
+    "Gemini 추천 실패 (시도 1회): 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+    "Gemini 추천 실패 (시도 2회): 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+    "Gemini 추천 실패 (시도 3회): 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+    "리포트 생성 에러 (시도 1회): 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+    "리포트 생성 에러 (시도 2회): 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+    "리포트 생성 에러 (시도 3회): 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+  ]
+}

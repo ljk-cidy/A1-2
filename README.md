@@ -56,13 +56,12 @@
 ```text
 my_travel_app/
 ├── .env                          # API 키 보관 (Git 제외 필수)
-├── .gitignore                    # .env, results/ 등 제외 설정
-├── travel_recommender_gui.py     # GUI 버전 (이 문서의 주 프로그램)
-├── main.py                       # CLI 버전 (선택)
+├── .gitignore                    # .env 및 새 실행 결과 제외 설정
+├── main.py                       # GUI 및 CLI 실행 파일
 ├── README.md                     # 프로그램 설명서
 └── results/                      # 실행 결과 자동 저장 폴더
-    ├── result_YYYYMMDD_HHMMSS.json   # 원본 데이터 (AI 추천 + 맛집 + 오류 기록)
-    └── report_YYYYMMDD_HHMMSS.md     # 최종 마크다운 여행 리포트
+    ├── result_YYYYMMDD_HHMMSS_ffffff.json # 원본 데이터 (AI 추천 + 맛집 + 오류 기록)
+    └── report_YYYYMMDD_HHMMSS_ffffff.md   # 최종 마크다운 여행 리포트
 ```
 
 `results/` 폴더는 항상 **프로그램 파일이 있는 폴더**에 만들어집니다. 어디서 실행해도 저장 위치가 바뀌지 않습니다.
@@ -112,7 +111,7 @@ __pycache__/
 ## 6. 사용 방법
 
 ```bash
-python travel_recommender_gui.py
+python main.py
 ```
 
 1. 창이 열리면 **년/월/일**을 선택합니다. (기본값은 오늘)
@@ -135,8 +134,8 @@ python travel_recommender_gui.py
 
 실행이 끝나면 `results/` 폴더에 실행 시각 기준으로 파일 2개가 생성됩니다.
 
-1. `result_YYYYMMDD_HHMMSS.json`: AI 추천 결과, 맛집 검색 결과, 오류 기록(`errors`)을 담은 원본 데이터
-2. `report_YYYYMMDD_HHMMSS.md`: 추천 이유, 날씨, 행사, 맛집, 하루 일정이 정리된 마크다운 리포트
+1. `result_YYYYMMDD_HHMMSS_ffffff.json`에 AI 추천, 맛집 검색 결과, 오류 기록(`errors`)을 저장합니다.
+2. `report_YYYYMMDD_HHMMSS_ffffff.md`에 추천 이유, 날씨, 행사, 맛집, 하루 일정을 저장합니다.
 
 > 날씨와 행사는 AI가 생성한 **일반적인 정보**입니다. 실시간 예보가 아니므로 방문 전에 꼭 확인하세요.
 
@@ -168,8 +167,8 @@ GUI 프로그램은 화면을 그리는 **메인 스레드**가 오래 걸리는
 
 | 상황 | 동작 |
 |---|---|
-| 429 / 500 / 503 (한도 초과, 서버 혼잡) | 서버 권장 대기시간 또는 6초, 12초 순으로 최대 3회 재시도. 상태 줄에 카운트다운 표시 |
-| 서버 권장 대기시간이 90초 초과 | 일일 할당량 소진으로 보고 재시도 없이 안내 |
+| 429 / 500 / 503 (한도 초과, 서버 혼잡) | 서버 권장 대기시간 또는 6초, 12초 순으로 최초 호출을 포함해 최대 3회 시도. 상태 줄에 카운트다운 표시 |
+| 서버 권장 대기시간이 90초 초과 | 추가 시도 없이 오류 안내 |
 | 400 / 401 / 403 (키 오류) | 재시도 없이 "API 키 확인" 팝업 |
 | 404 (모델명 오류) | 재시도 없이 `GEMINI_MODEL` 확인 팝업 |
 | AI 응답 형식 오류 | 대기 없이 즉시 안내 |
@@ -186,10 +185,10 @@ AI 추천이 실패했을 때 임의의 도시(예: 서울)로 대체하지 않�
 ```bash
 python main.py --date 2026-10-15    # 날짜 지정
 python main.py -d 2026-10-15        # 짧은 옵션
-python main.py                      # 날짜를 물어봄 (엔터 = 오늘)
+python main.py --cli                # 날짜를 물어봄 (엔터 = 오늘)
 ```
 
-긴 옵션은 하이픈 **두 개**(`--date`)입니다. 하이픈 하나짜리 `-date`는 `-d` + `ate`로 해석되어 오류가 납니다.
+날짜 옵션은 `--date` 또는 `-d`를 사용합니다. 기존 실행 명령과의 호환을 위해 `-date`도 지원합니다. 프로그램은 저장 경로를 터미널에 출력합니다.
 
 ---
 
@@ -203,7 +202,7 @@ python main.py                      # 날짜를 물어봄 (엔터 = 오늘)
 | 팝업: 오류 코드 404 | 모델명이 올바르지 않습니다. `GEMINI_MODEL`을 확인하세요. |
 | 팝업: 오류 코드 429 | 사용 한도 초과입니다. 잠시 후 또는 내일 다시 시도하세요. |
 | 맛집 탭이 "데이터 없음" | 카카오 키가 REST API 키인지 확인하고, 결과 JSON의 `errors` 항목을 확인하세요. |
-| CLI에서 `argument -d/--date: ... 'ate'` | `-date` 대신 `--date` 또는 `-d`를 사용하세요. |
+| CLI에서 날짜 형식 오류 | 실제 날짜를 `YYYY-MM-DD` 형식으로 입력하세요. |
 
 ---
 

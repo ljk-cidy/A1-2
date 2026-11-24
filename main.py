@@ -1,13 +1,15 @@
-"""국내 여행지 추천 프로그램 - GUI 버전 (tkinter, 추가 설치 불필요)
+"""국내 여행지 추천 프로그램 (GUI 및 CLI).
 
 실행:
-    python travel_recommender_gui.py
+    python main.py
+    python main.py --date 2026-10-15
 
 필요한 패키지:
     pip install google-genai python-dotenv requests
 """
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import queue
@@ -84,13 +86,13 @@ def call_gemini(client, prompt, config, errors, notify, max_attempts=3):
             return client.models.generate_content(model=model, contents=prompt, config=config)
         except genai_errors.APIError as e:
             code = getattr(e, "code", None)
-            errors.append(f"Gemini 오류 (code={code}, 시도 {attempt}/{max_attempts}): {e}")
+            errors.append(f"Gemini 오류 (code={code}, 시도 {attempt}/{max_attempts})")
             if code not in RETRYABLE_CODES or attempt == max_attempts:
                 raise
             hint = retry_delay_hint(e)
             if hint is not None and hint > MAX_WAIT_SECONDS:
                 raise
-            wait = int(hint) + 2 if hint is not None else 3 * (2 ** attempt)
+            wait = min(MAX_WAIT_SECONDS, int(hint) + 2) if hint is not None else 3 * (2 ** attempt)
             for remaining in range(wait, 0, -1):
                 notify(f"서버가 바쁩니다. {remaining}초 후 다시 시도합니다...")
                 time.sleep(1)
@@ -113,7 +115,10 @@ def get_recommendation(client, travel_date, errors, notify) -> Recommendation:
     response = call_gemini(client, prompt, config, errors, notify)
     if isinstance(response.parsed, Recommendation):
         return response.parsed
-    return Recommendation.model_validate_json(response.text)
+    try:
+        return Recommendation.model_validate_json(response.text)
+    except ValueError as e:
+        raise AppError("AI 응답 형식이 올바르지 않습니다. 다시 시도해 주세요.") from e
 
 
 # ------------------------------------------------------------------ 카카오
@@ -134,20 +139,29 @@ def get_restaurants(city: str, errors: list[str]) -> list[dict]:
         hint = " (REST API 키가 맞는지 확인하세요)" if res.status_code == 401 else ""
         errors.append(f"카카오 API 호출 실패: HTTP {res.status_code}{hint}")
         return []
-    except requests.RequestException as e:
-        errors.append(f"카카오 API 통신 오류: {e}")
+    except requests.RequestException:
+        errors.append("카카오 API 통신 오류")
+        return []
+
+    try:
+        payload = res.json()
+        documents = payload.get("documents") if isinstance(payload, dict) else None
+        if not isinstance(documents, list) or any(not isinstance(item, dict) for item in documents):
+            raise ValueError("Invalid Kakao documents")
+    except ValueError:
+        errors.append("카카오 API 응답 형식 오류")
         return []
 
     return [
         {
             "name": d.get("place_name", ""),
             "address": d.get("road_address_name") or d.get("address_name", ""),
-            "category": d.get("category_name", "").split(" > ")[-1],
+            "category": str(d.get("category_name") or "").split(" > ")[-1],
             "url": d.get("place_url", ""),
             "longitude": d.get("x", ""),
             "latitude": d.get("y", ""),
         }
-        for d in res.json().get("documents", [])
+        for d in documents
     ]
 
 
@@ -191,7 +205,7 @@ def render_report(rec: Recommendation, restaurants: list[dict], travel_date: str
 
 def save_results(travel_date, rec, restaurants, errors, report_md) -> tuple[Path, Path]:
     RESULT_DIR.mkdir(exist_ok=True)
-    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     json_path = RESULT_DIR / f"result_{stamp}.json"
     md_path = RESULT_DIR / f"report_{stamp}.md"
     json_path.write_text(
@@ -218,10 +232,9 @@ def run_pipeline(travel_date: str, notify) -> Result:
         raise AppError("GEMINI_API_KEY 가 .env 파일에 없습니다.\n.env 파일 위치와 변수 이름을 확인해 주세요.")
 
     errors: list[str] = []
-    client = genai.Client(api_key=api_key)
-
     notify("[1/3] AI 가 여행지를 고르는 중...")
-    rec = get_recommendation(client, travel_date, errors, notify)
+    with genai.Client(api_key=api_key, http_options=types.HttpOptions(timeout=30_000)) as client:
+        rec = get_recommendation(client, travel_date, errors, notify)
 
     notify(f"[2/3] {rec.recommended_city} 맛집을 검색하는 중...")
     restaurants = get_restaurants(rec.recommended_city, errors)
@@ -419,8 +432,8 @@ class App(tk.Tk):
             put(("error", str(e)))
         except genai_errors.APIError as e:
             put(("error", explain_api_error(e)))
-        except ValueError as e:  # AI 응답의 JSON/스키마 오류
-            put(("error", f"AI 응답 형식이 올바르지 않습니다. 다시 시도해 주세요.\n\n({e})"))
+        except OSError as e:
+            put(("error", f"파일 저장 또는 네트워크 연결에 실패했습니다. ({type(e).__name__})"))
         except Exception as e:  # noqa: BLE001
             put(("error", f"예상치 못한 오류가 발생했습니다.\n\n{type(e).__name__}: {e}"))
 
@@ -445,6 +458,9 @@ class App(tk.Tk):
 
     def _on_error(self, message: str):
         self._finish_run()
+        if self.result:
+            self.folder_btn.config(state="normal")
+            self.copy_btn.config(state="normal")
         self.status_var.set("✗ 실패했습니다.")
         messagebox.showerror("추천 실패", message)
 
@@ -527,9 +543,7 @@ class App(tk.Tk):
             self.status_var.set("📋 리포트를 클립보드에 복사했습니다.")
 
 
-def main():
-    load_dotenv()                         # 현재 폴더 기준
-    load_dotenv(BASE_DIR / ".env")        # 스크립트 폴더 기준 (더블클릭 실행 대비)
+def run_gui():
     try:  # Windows 고해상도 화면에서 글자가 흐려지지 않게
         import ctypes
 
@@ -539,5 +553,49 @@ def main():
     App().mainloop()
 
 
+def parse_travel_date(value: str) -> str:
+    try:
+        if re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value):
+            return date.fromisoformat(value).isoformat()
+    except ValueError:
+        pass
+    raise argparse.ArgumentTypeError("실제 날짜를 YYYY-MM-DD 형식으로 입력해 주세요.")
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="국내 여행지 추천 프로그램")
+    parser.add_argument("-d", "--date", "-date", type=parse_travel_date, help="CLI 여행 날짜 (YYYY-MM-DD)")
+    parser.add_argument("--cli", action="store_true", help="터미널에서 여행 날짜 입력")
+    args = parser.parse_args(argv)
+    travel_date = args.date
+    if args.cli and not travel_date:
+        try:
+            value = input("여행 날짜 (YYYY-MM-DD, 엔터 = 오늘): ").strip()
+        except (EOFError, KeyboardInterrupt):
+            parser.exit(1, "\n날짜 입력이 취소되었습니다.\n")
+        try:
+            travel_date = parse_travel_date(value) if value else date.today().isoformat()
+        except argparse.ArgumentTypeError as e:
+            parser.error(str(e))
+
+    load_dotenv(BASE_DIR / ".env")
+    if not travel_date:
+        run_gui()
+        return 0
+
+    try:
+        result = run_pipeline(travel_date, print)
+    except genai_errors.APIError as e:
+        parser.exit(1, f"{explain_api_error(e)}\n")
+    except AppError as e:
+        parser.exit(1, f"{e}\n")
+    except OSError as e:
+        parser.exit(1, f"파일 저장 또는 네트워크 연결에 실패했습니다. ({type(e).__name__})\n")
+    for warning in result.errors:
+        print(f"[경고] {warning}", file=sys.stderr)
+    print(f"추천 여행지: {result.rec.recommended_city}\n리포트: {result.md_path}\n원본 데이터: {result.json_path}")
+    return 0
+
+
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
